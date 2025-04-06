@@ -69,6 +69,15 @@
       cursor: pointer;
       display: none;
     }
+    #musicBtn {
+      margin-top: 15px;
+      font-size: 18px;
+      background-color: #f39c12;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -80,5 +89,161 @@
   <div class="keyboard" id="keyboard"></div>
   <div class="status" id="status"></div>
   <button id="nextBtn" onclick="nextRound()">Next Word</button>
-  <audio id="bgMusic" loop autoplay>
-    <source src="https://cdn.pixabay.com/audio/2023/03/23/audio_a69f693829.mp3"
+  <br>
+  <button id="musicBtn" onclick="toggleMusic()">🎵 Toggle Music</button>
+  <audio id="bgMusic" loop>
+    <source src="https://cdn.pixabay.com/audio/2023/03/23/audio_a69f693829.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const wordsData = {
+      "seashore": "Land beside the sea or ocean.",
+      "climbers": "Plants that grow upwards using support.",
+      "creepers": "Plants that grow by spreading on the ground.",
+      "drown": "To die by being underwater.",
+      "thorns": "Sharp points on plants.",
+      "straight": "Without bends or curves.",
+      "grateful": "Feeling thankful.",
+      "pecked": "Tapped with a beak.",
+      "trunk": "The main stem of a tree.",
+      "garden": "A place to grow plants.",
+      "shrubs": "Small bushy plants.",
+      "herbs": "Plants used in food or medicine.",
+      "playing": "Having fun.",
+      "flying": "Moving in the air.",
+      "harsh": "Rough or unpleasant."
+    };
+
+    const congratsMessages = [
+      "🎉 Great job!",
+      "🎈 Awesome! You got it!",
+      "👏 Well done!",
+      "🥳 You're a star!",
+      "🎊 Fantastic!",
+      "🎯 Nailed it!",
+      "🌟 Impressive!",
+      "🏆 You're amazing!",
+      "🎁 Great going!",
+      "🚀 Woohoo! Next one!"
+    ];
+
+    const maxRounds = 10;
+    let currentRound = 1;
+    let gameWords = Object.entries(wordsData).sort(() => 0.5 - Math.random()).slice(0, maxRounds);
+    let word = "", hint = "", guessed = [], wrong = 0;
+
+    const stages = [
+      `\n\n\n\n\n\n_______`,
+      `\n   |\n   |\n   |\n   |\n   |\n___|___`,
+      `\n   _______\n   |     \n   |     \n   |     \n   |     \n___|___`,
+      `\n   _______\n   |     |\n   |     O\n   |     \n   |     \n___|___`,
+      `\n   _______\n   |     |\n   |     O\n   |     |\n   |     \n___|___`,
+      `\n   _______\n   |     |\n   |     O\n   |    /|\\\n   |     \n___|___`,
+      `\n   _______\n   |     |\n   |     O\n   |    /|\\\n   |    / \\\n___|___`
+    ];
+
+    const maxWrong = 6;
+    const hangmanEl = document.getElementById("hangman");
+    const wordEl = document.getElementById("wordDisplay");
+    const keyboardEl = document.getElementById("keyboard");
+    const statusEl = document.getElementById("status");
+    const hintEl = document.getElementById("hint");
+    const roundEl = document.getElementById("round");
+    const nextBtn = document.getElementById("nextBtn");
+    const music = document.getElementById("bgMusic");
+
+    function pickWord() {
+      const [newWord, newHint] = gameWords[currentRound - 1];
+      word = newWord;
+      hint = newHint;
+      const unique = [...new Set(word.split(""))];
+      guessed = unique.sort(() => 0.5 - Math.random()).slice(0, 2);
+      wrong = 0;
+    }
+
+    function drawWord() {
+      wordEl.innerHTML = "";
+      word.split("").forEach(letter => {
+        const span = document.createElement("span");
+        span.classList.add("letter-box");
+        span.textContent = guessed.includes(letter) ? letter : "";
+        wordEl.appendChild(span);
+      });
+    }
+
+    function drawHangman() {
+      hangmanEl.innerText = stages[wrong];
+    }
+
+    function drawKeyboard() {
+      keyboardEl.innerHTML = "";
+      "abcdefghijklmnopqrstuvwxyz".split("").forEach(letter => {
+        const btn = document.createElement("button");
+        btn.textContent = letter;
+        btn.disabled = guessed.includes(letter);
+        btn.onclick = () => handleGuess(letter, btn);
+        keyboardEl.appendChild(btn);
+      });
+    }
+
+    function handleGuess(letter, btn) {
+      guessed.push(letter);
+      btn.disabled = true;
+      if (!word.includes(letter)) wrong++;
+      drawWord();
+      drawHangman();
+      checkStatus();
+    }
+
+    function checkStatus() {
+      const currentGuess = word.split("").every(l => guessed.includes(l));
+      if (currentGuess) {
+        statusEl.textContent = congratsMessages[(currentRound - 1) % congratsMessages.length];
+        endRound();
+      } else if (wrong >= maxWrong) {
+        statusEl.textContent = `💀 Game Over! The word was "${word}".`;
+        endRound();
+      }
+    }
+
+    function endRound() {
+      document.querySelectorAll(".keyboard button").forEach(btn => btn.disabled = true);
+      if (currentRound < maxRounds) {
+        nextBtn.style.display = "inline-block";
+      } else {
+        statusEl.textContent += " ✅ Game complete!";
+      }
+    }
+
+    function nextRound() {
+      currentRound++;
+      roundEl.textContent = `Round ${currentRound}/${maxRounds}`;
+      nextBtn.style.display = "none";
+      start();
+    }
+
+    function start() {
+      pickWord();
+      hintEl.textContent = "Hint: " + hint;
+      drawHangman();
+      drawWord();
+      drawKeyboard();
+      statusEl.textContent = "";
+    }
+
+    function toggleMusic() {
+      if (music.paused) {
+        music.play().catch(err => console.log("Autoplay blocked", err));
+      } else {
+        music.pause();
+      }
+    }
+
+    document.addEventListener("click", () => {
+      if (music.paused) music.play().catch(err => console.log("Autoplay blocked", err));
+    }, { once: true });
+
+    start();
+  </script>
+</body>
+</html>
