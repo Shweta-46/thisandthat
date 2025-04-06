@@ -17,11 +17,79 @@
       margin-bottom: 15px;
     }
     .hangman {
-      font-family: monospace;
-      white-space: pre;
-      font-size: 18px;
-      margin: 20px 0;
-      color: #444;
+      width: 200px;
+      height: 250px;
+      margin: 0 auto;
+      position: relative;
+      border-left: 4px solid #000;
+      border-bottom: 4px solid #000;
+      margin-bottom: 20px;
+    }
+    .gallow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100px;
+      height: 4px;
+      background-color: black;
+    }
+    .rope {
+      position: absolute;
+      top: 0;
+      left: 96px;
+      width: 4px;
+      height: 30px;
+      background-color: black;
+    }
+    .head {
+      position: absolute;
+      top: 30px;
+      left: 80px;
+      width: 40px;
+      height: 40px;
+      border: 4px solid black;
+      border-radius: 50%;
+      display: none;
+    }
+    .body {
+      position: absolute;
+      top: 70px;
+      left: 98px;
+      width: 4px;
+      height: 60px;
+      background-color: black;
+      display: none;
+    }
+    .arm-left, .arm-right, .leg-left, .leg-right {
+      position: absolute;
+      width: 4px;
+      height: 40px;
+      background-color: black;
+      display: none;
+    }
+    .arm-left {
+      top: 80px;
+      left: 98px;
+      transform: rotate(-45deg);
+      transform-origin: top;
+    }
+    .arm-right {
+      top: 80px;
+      left: 98px;
+      transform: rotate(45deg);
+      transform-origin: top;
+    }
+    .leg-left {
+      top: 130px;
+      left: 98px;
+      transform: rotate(-45deg);
+      transform-origin: top;
+    }
+    .leg-right {
+      top: 130px;
+      left: 98px;
+      transform: rotate(45deg);
+      transform-origin: top;
     }
     .word {
       font-size: 28px;
@@ -69,31 +137,26 @@
       cursor: pointer;
       display: none;
     }
-    #musicBtn {
-      margin-top: 15px;
-      font-size: 18px;
-      background-color: #f39c12;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
   <h1>Hangman Game</h1>
   <div id="round">Round 1/10</div>
   <div class="hint" id="hint"></div>
-  <div class="hangman" id="hangman"></div>
+  <div class="hangman">
+    <div class="gallow"></div>
+    <div class="rope"></div>
+    <div class="head" id="head"></div>
+    <div class="body" id="body"></div>
+    <div class="arm-left" id="arm-left"></div>
+    <div class="arm-right" id="arm-right"></div>
+    <div class="leg-left" id="leg-left"></div>
+    <div class="leg-right" id="leg-right"></div>
+  </div>
   <div class="word" id="wordDisplay"></div>
   <div class="keyboard" id="keyboard"></div>
   <div class="status" id="status"></div>
   <button id="nextBtn" onclick="nextRound()">Next Word</button>
-  <br>
-  <button id="musicBtn" onclick="toggleMusic()">🎵 Toggle Music</button>
-  <audio id="bgMusic" loop>
-    <source src="https://cdn.pixabay.com/audio/2023/03/23/audio_a69f693829.mp3" type="audio/mpeg">
-  </audio>
 
   <script>
     const wordsData = {
@@ -132,25 +195,16 @@
     let gameWords = Object.entries(wordsData).sort(() => 0.5 - Math.random()).slice(0, maxRounds);
     let word = "", hint = "", guessed = [], wrong = 0;
 
-    const stages = [
-      `\n\n\n\n\n\n_______`,
-      `\n   |\n   |\n   |\n   |\n   |\n___|___`,
-      `\n   _______\n   |     \n   |     \n   |     \n   |     \n___|___`,
-      `\n   _______\n   |     |\n   |     O\n   |     \n   |     \n___|___`,
-      `\n   _______\n   |     |\n   |     O\n   |     |\n   |     \n___|___`,
-      `\n   _______\n   |     |\n   |     O\n   |    /|\\\n   |     \n___|___`,
-      `\n   _______\n   |     |\n   |     O\n   |    /|\\\n   |    / \\\n___|___`
+    const parts = [
+      "head", "body", "arm-left", "arm-right", "leg-left", "leg-right"
     ];
 
-    const maxWrong = 6;
-    const hangmanEl = document.getElementById("hangman");
     const wordEl = document.getElementById("wordDisplay");
     const keyboardEl = document.getElementById("keyboard");
     const statusEl = document.getElementById("status");
     const hintEl = document.getElementById("hint");
     const roundEl = document.getElementById("round");
     const nextBtn = document.getElementById("nextBtn");
-    const music = document.getElementById("bgMusic");
 
     function pickWord() {
       const [newWord, newHint] = gameWords[currentRound - 1];
@@ -172,7 +226,9 @@
     }
 
     function drawHangman() {
-      hangmanEl.innerText = stages[wrong];
+      parts.forEach((id, i) => {
+        document.getElementById(id).style.display = i < wrong ? "block" : "none";
+      });
     }
 
     function drawKeyboard() {
@@ -200,7 +256,7 @@
       if (currentGuess) {
         statusEl.textContent = congratsMessages[(currentRound - 1) % congratsMessages.length];
         endRound();
-      } else if (wrong >= maxWrong) {
+      } else if (wrong >= parts.length) {
         statusEl.textContent = `💀 Game Over! The word was "${word}".`;
         endRound();
       }
@@ -230,18 +286,6 @@
       drawKeyboard();
       statusEl.textContent = "";
     }
-
-    function toggleMusic() {
-      if (music.paused) {
-        music.play().catch(err => console.log("Autoplay blocked", err));
-      } else {
-        music.pause();
-      }
-    }
-
-    document.addEventListener("click", () => {
-      if (music.paused) music.play().catch(err => console.log("Autoplay blocked", err));
-    }, { once: true });
 
     start();
   </script>
